@@ -14,18 +14,19 @@ from tensorflow.keras.layers import Layer, Conv2D, GlobalAveragePooling2D, Globa
 class CBAM_Module(Layer):
 
 
-    def __init__(self, reduction_rate = 0.3):
+    def __init__(self, num_channels, reduction_rate = 0.3, **kwargs):
         
         """Initialises the CBAM module.
         """
             
         super(CBAM_Module, self).__init__(**kwargs)
         self.reduction_rate = reduction_rate
-        self.mlp_hidden_layer = Dense(units = num_channels/reduction_ratio,
+        self.num_channels = num_channels
+        self.mlp_hidden_layer = Dense(units = self.num_channels*self.reduction_rate,
                                    activation = 'relu')
-        self.mlp_output_layer = Dense(units = num_channels)
+        self.mlp_output_layer = Dense(units = self.num_channels)
 
-
+    
     def compute_channel_att(self, x):
 
         """Implements the channel attention component of CBAM.
@@ -41,29 +42,25 @@ class CBAM_Module(Layer):
         1. In literature, feature map is passed in as (channel, height, width) but in Tensorflow implementaiton, feature maps are handled as (height, width, channel) so have to perform a transpose operation on input.
         2. Channel attention map is multiplied element-wise to each pixel in each of the channel
         """
-
-        # Make shape consistent with literature
-        # TF handles array as (height,width, channel) but literature states (channel, height, width)
-        x = tf.transpose(x, perm=[2, 0, 1])
-        # shape: (channel, height, width)
-
+                
         # Apply max and average pooling
+        # (height, width, channel) -> (channel, )
         max_pool_x = GlobalMaxPooling2D()(x)
         avg_pool_x = GlobalAveragePooling2D()(x)
         #  shape: (channel, )
 
         # Shared MLP
-        num_channels = tf.shape(avg_pool_x).numpy()[0]
+        num_channels = tf.shape(avg_pool_x)[0]
 
         # Pass pooled tensors into shared MLP
-        max_pool_x = self.mlp_hidden_layer()(max_pool_x)
-        # shape: (channel/reduction_ratio, )
-        max_pool_x = self.mlp_output_layer()(max_pool_x)
+        max_pool_x = self.mlp_hidden_layer(max_pool_x)
+        # shape: (channel*reduction_ratio, )
+        max_pool_x = self.mlp_output_layer(max_pool_x)
         # shape: (channel, )
 
-        avg_pool_x = self.mlp_hidden_layer()(avg_pool_x)
-        # shape: (channel/reduction_ratio, )
-        avg_pool_x = self.mlp_output_layer()(avg_pool_x)
+        avg_pool_x = self.mlp_hidden_layer(avg_pool_x)
+        # shape: (channel*reduction_ratio, )
+        avg_pool_x = self.mlp_output_layer(avg_pool_x)
         # shape: (channel, )
 
         # Perform element wise summation
@@ -76,7 +73,7 @@ class CBAM_Module(Layer):
 
         return x
 
-
+    
     def compute_spatial_att(self, x):
 
         """Implements the spatial attention component of CBAM.
@@ -87,68 +84,66 @@ class CBAM_Module(Layer):
         Returns:
             spatial_att_map: Spatial attention map of shape (height, width)
         """
-
+        
         # Apply max pooling across the channels
         # Here, 4 dimensions as accounting for the batch size as well
-        max_pool_x = tf.nn.max_pool(x, ksize = (1,1,1,3), strides = (1,1,1,3), padding = 'VALID')
-        # shape: (1, height, width)
-        avg_pool_x = tf.nn.avg_pool(x, ksize = (1,1,1,3), strides = (1,1,1,3), padding = 'VALID')
-        # shape: (1, height, width)
-
+        max_pool_x = tf.reduce_max(x, axis = -1, keepdims = True)
+        # shape: (height, width, 1)
+        
+        avg_pool_x = tf.reduce_mean(x, axis = -1, keepdims = True)
+        # shape: (height, width, 1)
+        
         # Concatenate the inputs channel wise
         x = Concatenate()([max_pool_x, avg_pool_x])
-        # shape: (2, height, width)
-
-        # Transpose the matrix to get (height, width, 2)
-        x = tf.transpose(x, perm = [1,2,0])
-
+        # shape: (height, width, 2)
+                
         # Perform 7x7 convolution layer
         x = Conv2D(filters = 1, kernel_size = 7, strides = 1, padding = 'same')(x)
         # shape: (height, width, 1)
-
+        
         x = tf.nn.sigmoid(x)
         # shape: (height, width, 1)
-
+                
         return x
 
 
-        def call(self, x):
+    def call(self, x):
 
-            """Passes input features through the CBAM module
+        """Passes input features through the CBAM module
 
-            Args:
-                x: Input features of shape (height,width,channel)
+        Args:
+            x: Input features of shape (height,width,channel)
 
-            Returns:
-                x: Input features with attention applied of shape (height,width,channel)
-            """
+        Returns:
+            x: Input features with attention applied of shape (height,width,channel)
+        """
+    
+        # Get dimensions of the input
+        num_channels = tf.shape(x)[-1]
 
-            # Get dimensions of the input
-            num_channels = tf.shape(avg_pool_x).numpy()[2]
+        # Compute channel attention
+        channel_att = self.compute_channel_att(x)
+        # shape: (channel,)
+        
+        channel_att = tf.expand_dims(channel_att, axis = -1)
+        channel_att = tf.expand_dims(channel_att, axis = -1)
+        # shape: (channel, 1, 1)
+        
+        # Apply channel attention
+        # Idea: Multiply each value in the vector channel_att with the corresponding channel in the image
+        # Broadcast channel_att in the height and width dimensions
+        channel_att_reshaped = tf.transpose(channel_att, perm = [0, 2, 3, 1])
+        # shape: (1,1, channel)
 
-            # Compute channel attention
-            channel_att = self.compute_channel_att(x)
+        x = Multiply()([x, channel_att_reshaped])
+        # shape: (height, width, channel)
 
-            # Apply channel attention
-            # Idea: Multiply each value in the vector channel_att with the corresponding channel in the image
-            # Broadcast channel_att in the height and width dimensions
-            channel_attn_reshaped = tf.reshape(channel_attn, (1, 1, -1))
-            # shape: (1,1, channel)
-
-            x = Multiply()([x, channel_attn_reshaped])
-            # shape: (height, width, channel)
-
-            # Compute spatial attention
-            spatial_att = self.compute_spatial_att()
-
-            # Apply spatial attention
-            # Broadcast spatial_att in the channel dimension
-            spatial_att = tf.expand_dims(spatial_att, axis=-1)
-            # shape: (height, width, 1)
-            spatial_att = tf.tile(spatial_att, multiples=[1, 1, num_channels])
-            # shape: (height, width, channel)
-
-            # Return input features with attention applied
-            x = Multiply()([x, spatial_att])
-
-            return x
+        # Compute spatial attention
+        spatial_att = self.compute_spatial_att(x)
+        # shape: (height, width, 1)
+        
+        # Return input features with attention applied
+        x = Multiply()([x, spatial_att])
+        # shape: (height, width, channel)
+        
+        return x
