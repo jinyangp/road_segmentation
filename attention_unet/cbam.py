@@ -42,18 +42,19 @@ class CBAM_Module(Layer):
         1. In literature, feature map is passed in as (channel, height, width) but in Tensorflow implementaiton, feature maps are handled as (height, width, channel) so have to perform a transpose operation on input.
         2. Channel attention map is multiplied element-wise to each pixel in each of the channel
         """
-                
+        
         # Apply max and average pooling
         # (height, width, channel) -> (channel, )
         max_pool_x = GlobalMaxPooling2D()(x)
         avg_pool_x = GlobalAveragePooling2D()(x)
         #  shape: (channel, )
-
+    
         # Shared MLP
         num_channels = tf.shape(avg_pool_x)[0]
-
+        
         # Pass pooled tensors into shared MLP
         max_pool_x = self.mlp_hidden_layer(max_pool_x)
+        
         # shape: (channel*reduction_ratio, )
         max_pool_x = self.mlp_output_layer(max_pool_x)
         # shape: (channel, )
@@ -66,7 +67,7 @@ class CBAM_Module(Layer):
         # Perform element wise summation
         x = Add()([max_pool_x, avg_pool_x])
         # shape: (channel, )
-
+        
         # Pass through sigmoid activation
         x = tf.nn.sigmoid(x)
         # shape: (channel, )
@@ -84,7 +85,7 @@ class CBAM_Module(Layer):
         Returns:
             spatial_att_map: Spatial attention map of shape (height, width)
         """
-        
+                
         # Apply max pooling across the channels
         # Here, 4 dimensions as accounting for the batch size as well
         max_pool_x = tf.reduce_max(x, axis = -1, keepdims = True)
@@ -96,11 +97,11 @@ class CBAM_Module(Layer):
         # Concatenate the inputs channel wise
         x = Concatenate()([max_pool_x, avg_pool_x])
         # shape: (height, width, 2)
-                
+        
         # Perform 7x7 convolution layer
         x = Conv2D(filters = 1, kernel_size = 7, strides = 1, padding = 'same')(x)
         # shape: (height, width, 1)
-        
+                
         x = tf.nn.sigmoid(x)
         # shape: (height, width, 1)
                 

@@ -38,7 +38,23 @@ def concatenate_img_and_segmaps(img, seg_map):
     axs[0].imshow(img)
     axs[1].imshow(pred_seg_map, cmap = 'gray')
 
+
+def output_to_segmap(output_nparray, threshold = 0.5):
     
+    """Converts model's output, a numpy array, into a segmentation map 
+    
+    Args:
+        output_nparray: numpy array, model's output
+        threshold: float, scalar to threshold predicted probability
+    Returns:
+        output_segmap: numpy array, segmentation map of model's output
+    """
+    
+    output_segmap = np.where(output_nparray > 0.5, 1., 0.)
+    output_segmap = output_segmap*255.
+    return output_segmap
+    
+
 def segmap_to_colourmask(img_width, img_height, seg_map):
     
     """Converts segmentation map, a numpy array, into a colour mask 
