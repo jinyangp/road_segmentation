@@ -250,7 +250,9 @@ class CBAM_UNet(Model):
 
             # Compute accuracy
             # Calculate pixel-wise accuracy
-            correct_pixels = tf.reduce_sum(tf.cast(tf.equal(y_true, y_pred), tf.float32))            
+            y_true_sample_gt = tf.where(tf.greater(y_true_sample, 0.5), 1, 0)
+            y_pred_sample_gt = tf.where(tf.greater(y_pred_sample, 0.5), 1, 0)
+            correct_pixels = tf.reduce_sum(tf.cast(tf.equal(y_true_sample_gt, y_pred_sample_gt), tf.float32))            
             height, width = y_true.shape[1], y_true.shape[2]
             accuracy = correct_pixels/ (height*width)
             ttal_acc += accuracy
