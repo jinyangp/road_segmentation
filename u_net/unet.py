@@ -23,7 +23,7 @@ class UNet(Model):
         """Initialises the CBAM-UNet model.
         """
         
-        super(CBAM_UNet, self).__init__(**kwargs)
+        super(UNet, self).__init__(**kwargs)
         
         # Instantiate basic parameters of the model
         self._input_shape = input_shape

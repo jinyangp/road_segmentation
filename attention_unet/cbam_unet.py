@@ -249,11 +249,14 @@ class CBAM_UNet(Model):
             y_pred_sample = tf.reshape(y_pred[i], [-1])
 
             # Compute accuracy
-            intersection = tf.reduce_sum(tf.cast(y_true_sample, tf.float32) * tf.cast(y_pred_sample, tf.float32))
+            # Calculate pixel-wise accuracy
+            correct_pixels = tf.reduce_sum(tf.cast(tf.equal(y_true, y_pred), tf.float32))            
             height, width = y_true.shape[1], y_true.shape[2]
-            accuracy = intersection/ (height*width)
+            accuracy = correct_pixels/ (height*width)
             ttal_acc += accuracy
             
+            intersection = tf.reduce_sum(tf.cast(y_true_sample, tf.float32) * tf.cast(y_pred_sample, tf.float32))
+ 
             # Compute IoU
             iou = (intersection + 1.) / (tf.reduce_sum(tf.cast(y_true_sample, tf.float32)) + 
             tf.reduce_sum(tf.cast(y_pred_sample, tf.float32)) - intersection + 1.)
