@@ -25,7 +25,7 @@ class Encoder_ConvBlock(Layer):
         x = self.conv_layer2(x)            
         return x
 
-    
+
 class Decoder_ConvBlock(Layer):
     
     '''Convolutional block for the encoder (downsampling portion) of the model.
@@ -37,8 +37,7 @@ class Decoder_ConvBlock(Layer):
         
         self.conv_layer1 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
         self.conv_layer2 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
-      
-    
+        
     def call(self, x):
         
         x = self.conv_layer1(x)
@@ -46,7 +45,7 @@ class Decoder_ConvBlock(Layer):
         
         return x
 
-    
+
 class Output_ConvBlock(Layer):
     
     '''Convolutional block after the decoder portion of the model (final convolution layers).
@@ -59,7 +58,6 @@ class Output_ConvBlock(Layer):
         self.conv_layer1 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
         self.conv_layer2 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
         self.conv1d_layer = Conv2D(filters = 1, kernel_size = 1, activation = 'sigmoid')
-    
     
     def call(self, x):
         
