@@ -211,17 +211,21 @@ class CBAM_UNet(Model):
             loss
         '''        
         
-        # binary cross entropy loss
-        predictions = tf.reshape(y_pred, [-1])
-        targets = tf.reshape(y_true, [-1])
+        class_weights = [0.7, 0.3] 
+        num_samples = y_true.shape[0]
+        loss = 0.
+        
+        for i in range(num_samples):
+            # binary cross entropy loss
+            predictions = tf.reshape(y_pred[i], [-1])
+            targets = tf.reshape(y_true[i], [-1])
 
-        # Apply binary cross entropy loss
-        bce = tf.keras.losses.BinaryCrossentropy()(targets, predictions)
+            # Apply binary cross entropy loss
+            bce = tf.keras.losses.BinaryCrossentropy()(targets, predictions)
+            weighted_bce = class_weights*bce
+            loss += tf.reduce_mean(weighted_bce)
         
-        class_weights = [0.7, 0.3]
-        weighted_bce = class_weights*bce
-        return tf.reduce_mean(weighted_bce)
-        
+        return loss/num_samples
     
     def compute_metrics(self, y_true, y_pred):
         
