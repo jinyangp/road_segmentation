@@ -14,18 +14,23 @@ from tensorflow.keras.layers import Layer, Conv2D, GlobalAveragePooling2D, Globa
 class CBAM_Module(Layer):
 
 
-    def __init__(self, num_channels, reduction_rate = 0.3, **kwargs):
+    def __init__(self, depth_no, num_channels, reduction_rate = 0.3, **kwargs):
         
         """Initialises the CBAM module.
         """
             
         super(CBAM_Module, self).__init__(**kwargs)
+        
+        self.depth_no = depth_no
+        self._name = f'cbam_depth{self.depth_no}'
+        
         self.reduction_rate = reduction_rate
         self.num_channels = num_channels
+        
         self.mlp_hidden_layer = Dense(units = self.num_channels*self.reduction_rate,
                                    activation = 'relu')
+        
         self.mlp_output_layer = Dense(units = self.num_channels)
-
     
     def compute_channel_att(self, x):
 

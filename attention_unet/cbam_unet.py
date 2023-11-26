@@ -34,26 +34,30 @@ class CBAM_UNet(Model):
         self.num_classes = num_classes
         
         # Instantiate CBAM modules
-        self.cbam_depth1 = CBAM_Module(64)
-        self.cbam_depth2 = CBAM_Module(128)
-        self.cbam_depth3 = CBAM_Module(256)
-        self.cbam_depth4 = CBAM_Module(512)
+        self.cbam_depth1 = CBAM_Module(1, 64)
+        self.cbam_depth2 = CBAM_Module(2, 128)
+        self.cbam_depth3 = CBAM_Module(3, 256)
+        self.cbam_depth4 = CBAM_Module(4, 512)
         
         # Instantiate custom layers
-        self.encoder_convblock_depth1 = Encoder_ConvBlock(64, 3, 1, True)
-        self.encoder_convblock_depth2 = Encoder_ConvBlock(128, 3, 1, True)
-        self.encoder_convblock_depth3 = Encoder_ConvBlock(256, 3, 1, True)
-        self.encoder_convblock_depth4 = Encoder_ConvBlock(512, 3, 1, True)
-        self.encoder_convblock_depth5 = Encoder_ConvBlock(1024, 3, 1, True)
+        self.encoder_convblock_depth1 = Encoder_ConvBlock(1, 64, 3, 1, True)
+        self.encoder_convblock_depth2 = Encoder_ConvBlock(2, 128, 3, 1, True)
+        self.encoder_convblock_depth3 = Encoder_ConvBlock(3, 256, 3, 1, True)
+        self.encoder_convblock_depth4 = Encoder_ConvBlock(4, 512, 3, 1, True)
+        self.encoder_convblock_depth5 = Encoder_ConvBlock(5, 1024, 3, 1, True)
         
         self.convtranspose_depth5 = Conv2DTranspose(filters = 512, kernel_size = 2, strides = 2, padding = 'same')
+        self.convtranspose_depth5._name = 'convtranspose_depth5'
         self.convtranspose_depth4 = Conv2DTranspose(filters = 256, kernel_size = 2, strides = 2, padding = 'same')
+        self.convtranspose_depth4._name = 'convtranspose_depth4'
         self.convtranspose_depth3 = Conv2DTranspose(filters = 128, kernel_size = 2, strides = 2, padding = 'same')
+        self.convtranspose_depth3._name = 'convtranspose_depth3'
         self.convtranspose_depth2 = Conv2DTranspose(filters = 64, kernel_size = 2, strides = 2, padding = 'same')
+        self.convtranspose_depth2._name = 'convtranspose_depth2'
         
-        self.decoder_convblock_depth4 = Decoder_ConvBlock(512, 3, 1, True)
-        self.decoder_convblock_depth3 = Decoder_ConvBlock(256, 3, 1, True)
-        self.decoder_convblock_depth2 = Decoder_ConvBlock(128, 3, 1, True)
+        self.decoder_convblock_depth4 = Decoder_ConvBlock(4, 512, 3, 1, True)
+        self.decoder_convblock_depth3 = Decoder_ConvBlock(3, 256, 3, 1, True)
+        self.decoder_convblock_depth2 = Decoder_ConvBlock(2, 128, 3, 1, True)
         
         self.output_convblock = Output_ConvBlock(64, 3, 1, True)
         
@@ -197,11 +201,61 @@ class CBAM_UNet(Model):
         # shape: (None, 400, 400, 1)
       
         return x
-        
+
+
+    def sgc_call(self, inputs):
     
+        # -----------------------------------
+        # Downsampling part - Encoder portion
+
+        x = inputs
+        x_0 = x
+        # shape: (None, 400, 400, 3)
+        
+        x = self.encoder_convblock_depth1(x)
+        x_1 = x
+        # shape: (None, 400, 400, 64)
+        
+        x = MaxPooling2D(pool_size = 2, strides = 2, padding = 'same')(x)
+        # shape: (None, 200, 200, 64)
+        
+        x = self.encoder_convblock_depth2(x)
+        x_2 = x
+        # shape: (None, 200, 200, 128)
+        x = MaxPooling2D(pool_size = 2, strides = 2, padding = 'same')(x)
+        # shape: (None, 100, 100, 128)
+        
+        x = self.encoder_convblock_depth3(x)
+        x_3 = x
+        # shape: (None, 100, 100, 256)
+        x = MaxPooling2D(pool_size = 2, strides = 2, padding = 'same')(x)
+        # shape: (None, 50, 50, 256)
+
+        x = self.encoder_convblock_depth4(x)
+        x_4 = x
+        # shape: (None, 50, 50, 512)
+        x = MaxPooling2D(pool_size = 2, strides = 2, padding = 'same')(x)
+        # shape: (None, 25, 25, 1024)
+
+        x = self.encoder_convblock_depth5(x)
+        # shape: (None, 25, 25, 1024)
+
+        # -----------------------------------
+        # Upsampling part - Decoder portion
+
+        # No. of channels x1/2 but dimensions x2
+        x = self.convtranspose_depth5(x)        
+        attention_x_4 = self.apply_att_and_crop(x_4, 4, tf.shape(x_4))       
+        x = Concatenate(axis=-1)([attention_x_4, x])        
+        x = self.decoder_convblock_depth4(x)
+        # shape: (None, 50, 50, 512)
+        
+        return x
+        
+        
     def compute_loss(self, y_true, y_pred):
         
-        '''Implementation code to calculate IoU loss for the CBAM model. 
+        '''Implementation code to calculate binary cross entropy loss for the CBAM U-Net model. 
         
         Args:
             y_true: tensor of shape (batch_size, 400, 400, 1), containing pixel values of groundtruth image
