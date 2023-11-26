@@ -4,7 +4,7 @@ This model references the following papers:
 1. U-Net Architecture: https://arxiv.org/pdf/1505.04597.pdf
 
 Side note: (Additional papers to be implemented in the future)
-1. CBAM-UNet++ Architecture: https://ieeexplore.ieee.org/document/9622008
+1. UNet++ Architecture: https://ieeexplore.ieee.org/document/9622008
 '''
 
 import numpy as np
@@ -18,9 +18,9 @@ from layers import *
 class UNet(Model):
     
     
-    def __init__(self, input_shape, num_classes = 2, **kwargs):
+    def __init__(self, input_shape, foreground_weight, road_weight, num_classes = 2, **kwargs):
     
-        """Initialises the CBAM-UNet model.
+        """Initialises the UNet model.
         """
         
         super(UNet, self).__init__(**kwargs)
@@ -46,7 +46,8 @@ class UNet(Model):
         self.decoder_convblock_depth2 = Decoder_ConvBlock(128, 3, 1, True)
         
         self.output_convblock = Output_ConvBlock(64, 3, 1, True)
-        
+        self.foreground_weight = foreground_weight
+        self.road_weight = road_weight
     
     # Override inherited summary() function
     def summary(self):
@@ -138,11 +139,10 @@ class UNet(Model):
         # shape: (None, 400, 400, 1)
       
         return x
-        
     
     def compute_loss(self, y_true, y_pred):
         
-        '''Implementation code to calculate Ioss for model. 
+        '''Implementation code to calculate IoU loss for the CBAM model. 
         
         Args:
             y_true: tensor of shape (batch_size, 400, 400, 1), containing pixel values of groundtruth image
@@ -150,26 +150,28 @@ class UNet(Model):
 
         Returns:
             loss
-        '''
+        '''        
         
-        # binary cross entropy loss
-        predictions = tf.reshape(y_pred, [-1])
-        targets = tf.reshape(y_true, [-1])
+        class_weights = [self.foreground_weight, self.road_weight] 
+        num_samples = y_true.shape[0]
+        loss = 0.
+        
+        for i in range(num_samples):
+            # binary cross entropy loss
+            predictions = tf.reshape(y_pred[i], [-1])
+            targets = tf.reshape(y_true[i], [-1])
 
-        # Apply binary cross entropy loss
-        # TODO: Determine optimal class weights
-        # TODO: BCE should be averaged over each sample in the batch, rather than done as a whole
-        # TODO: Investigate more on accuracy and Dice/IoU
-        bce = tf.keras.losses.BinaryCrossentropy()(targets, predictions)
+            # Apply binary cross entropy loss
+            bce = tf.keras.losses.BinaryCrossentropy()(targets, predictions)
+            weighted_bce = class_weights*bce
+            loss += tf.reduce_mean(weighted_bce)
         
-        class_weights = [0.7, 0.3]
-        weighted_bce = class_weights*bce
-        return tf.reduce_mean(weighted_bce)
+        return loss/num_samples
         
     
     def compute_metrics(self, y_true, y_pred):
         
-        '''Implementation code to calculate desired metrics of model. 
+        '''Implementation code to calculate desired metrics of CBAM model. 
         
         The following losses are considered:
         - Accuracy
@@ -193,11 +195,16 @@ class UNet(Model):
             y_pred_sample = tf.reshape(y_pred[i], [-1])
 
             # Compute accuracy
-            intersection = tf.reduce_sum(tf.cast(y_true_sample, tf.float32) * tf.cast(y_pred_sample, tf.float32))
+            # Calculate pixel-wise accuracy
+            y_true_sample_gt = tf.where(tf.greater(y_true_sample, 0.5), 1, 0)
+            y_pred_sample_gt = tf.where(tf.greater(y_pred_sample, 0.5), 1, 0)
+            correct_pixels = tf.reduce_sum(tf.cast(tf.equal(y_true_sample_gt, y_pred_sample_gt), tf.float32))            
             height, width = y_true.shape[1], y_true.shape[2]
-            accuracy = intersection/ (height*width)
+            accuracy = correct_pixels/ (height*width)
             ttal_acc += accuracy
             
+            intersection = tf.reduce_sum(tf.cast(y_true_sample, tf.float32) * tf.cast(y_pred_sample, tf.float32))
+ 
             # Compute IoU
             iou = (intersection + 1.) / (tf.reduce_sum(tf.cast(y_true_sample, tf.float32)) + 
             tf.reduce_sum(tf.cast(y_pred_sample, tf.float32)) - intersection + 1.)
