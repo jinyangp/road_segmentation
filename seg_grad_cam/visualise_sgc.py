@@ -78,7 +78,7 @@ class SegGradCAMplot(SegGradCAM):
         scatter_size = 330 * scale_fig
         return classes_cmap, scale_fig, fonts, scatter_size
 
-    def explainBase(self, title1, title1bias, start_save_name, pixel=False):
+    def explainBase(self, title1, title1bias, output_folder, start_save_name, pixel=False):
         """"""
         classes_cmap, scale_fig, fonts, scatter_size = self.defaultScales()
         fonts = int(fonts / 3)
@@ -114,11 +114,13 @@ class SegGradCAMplot(SegGradCAM):
         jet.ax.set_yticklabels([0, 0.2, 0.4, 0.6, 0.8, 1], size=fonts)
         if pixel:
             plt.scatter(self.roi.j, self.roi.i, color='white', s=scatter_size)  # j then i or i,j ?
-
+        
+        plt.savefig(os.path.join(output_folder, start_save_name))
         #plt.savefig(os.path.join(self.outfolder,
 #                                 start_save_name + str(self.cls) + '_to_act' + #self.prop_to_layer.split('_')[1] +'_'+
 #                                 self.timestr + ".png"))
 
+    
     def explainClass(self):
         """Plot seg-grad-cam explanation for a selected class channel"""
         title1 = 'Seg-Grad-CAM for class %d' % (self.cls)
