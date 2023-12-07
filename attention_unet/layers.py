@@ -11,7 +11,7 @@ class Encoder_ConvBlock(Layer):
     '''Convolutional block for the encoder (downsampling portion) of the model. 
     '''
     
-    def __init__(self, depth_no, num_filters, kernel_size, strides, padding, **kwargs):
+    def __init__(self, depth_no, num_filters, kernel_size, strides, **kwargs):
         
         super(Encoder_ConvBlock, self).__init__(**kwargs)
         
@@ -36,7 +36,7 @@ class Decoder_ConvBlock(Layer):
     '''Convolutional block for the encoder (downsampling portion) of the model.
     '''
     
-    def __init__(self, depth_no, num_filters, kernel_size, strides, padding, **kwargs):
+    def __init__(self, depth_no, num_filters, kernel_size, strides, **kwargs):
         
         super(Decoder_ConvBlock, self).__init__(**kwargs)
         
@@ -64,7 +64,7 @@ class Output_ConvBlock(Layer):
     '''Convolutional block after the decoder portion of the model (final convolution layers).
     '''
     
-    def __init__(self, num_filters, kernel_size, strides, padding, **kwargs):
+    def __init__(self, num_filters, kernel_size, strides, output_num_filters, **kwargs):
         
         super(Output_ConvBlock, self).__init__(**kwargs)
         
@@ -74,7 +74,7 @@ class Output_ConvBlock(Layer):
         
         self.conv_layer2 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
         
-        self.conv1d_layer = Conv2D(filters = 1, kernel_size = 1, activation = 'sigmoid')
+        self.conv1d_layer = Conv2D(filters = output_num_filters, kernel_size = 1, activation = 'sigmoid')
         
     
     def call(self, x):
