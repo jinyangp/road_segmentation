@@ -11,9 +11,12 @@ class Encoder_ConvBlock(Layer):
     '''Convolutional block for the encoder (downsampling portion) of the model. 
     '''
     
-    def __init__(self, num_filters, kernel_size, strides, padding, **kwargs):
+    def __init__(self, depth_no, num_filters, kernel_size, strides, **kwargs):
         
         super(Encoder_ConvBlock, self).__init__(**kwargs)
+        
+        self.depth_no = depth_no
+        self._name = f'encoder_depth{self.depth_no}'
         
         self.conv_layer1 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
         self.conv_layer2 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
@@ -31,9 +34,12 @@ class Decoder_ConvBlock(Layer):
     '''Convolutional block for the encoder (downsampling portion) of the model.
     '''
     
-    def __init__(self, num_filters, kernel_size, strides, padding, **kwargs):
+    def __init__(self, depth_no, num_filters, kernel_size, strides, **kwargs):
         
         super(Decoder_ConvBlock, self).__init__(**kwargs)
+        
+        self.depth_no = depth_no
+        self._name = f'decoder_depth{self.depth_no}'
         
         self.conv_layer1 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
         self.conv_layer2 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
@@ -51,9 +57,11 @@ class Output_ConvBlock(Layer):
     '''Convolutional block after the decoder portion of the model (final convolution layers).
     '''
     
-    def __init__(self, num_filters, kernel_size, strides, padding, **kwargs):
+    def __init__(self, num_filters, kernel_size, strides, **kwargs):
         
         super(Output_ConvBlock, self).__init__(**kwargs)
+        
+        self._name = 'output_block'
         
         self.conv_layer1 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
         self.conv_layer2 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
