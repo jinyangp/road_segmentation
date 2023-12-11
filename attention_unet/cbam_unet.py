@@ -236,6 +236,7 @@ class CBAM_UNet(Model):
             
         return self.loss_fnc.compute_loss(y_true, y_pred)
 
+    
     def compute_metrics(self, y_true, y_pred):
         
         '''Implementation code to calculate desired metrics of CBAM model. 
@@ -259,3 +260,24 @@ class CBAM_UNet(Model):
         acc = self.loss_fnc.metrics.compute_acc(y_true, y_pred)
         
         return acc, iou, dice
+    
+    def get_binary_mask(self, y_pred):
+        
+        '''Converts the output to a binary semantic mask.
+        
+        Args:
+            y_pred: tensor containing predictions, of shape (num_samples, 400, 400, 1) for weighted BCE loss and (num_samples, 400, 400, 2) for weighted IOU loss
+        
+        Returns:
+            y_pred_binary: tensors containing 0 or 1, representing class 0 or 1, of shape (num_samples, 400, 400, 1)
+        '''
+        
+        # TODO: Update documentations to (batch_size, height, width, channel) when describing shape to generalise for input shape
+        if self.loss_tag == 'weighted_bce':
+            y_pred_binary = tf.where(y_pred > 0.5, 1.0, 0.0)
+            
+        elif self.loss_tag == 'weighted_iou':
+            y_pred_binary = tf.argmax(y_pred, axis = -1)
+            y_pred_binary = tf.expand_dims(y_pred_binary, axis=-1)
+            
+        return y_pred_binary
