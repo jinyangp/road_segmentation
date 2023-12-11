@@ -14,11 +14,12 @@ from tensorflow.keras.layers import Conv2D, ReLU, MaxPooling2D, Conv2DTranspose,
 from keras import Model
 
 from layers import *
+from losses import *
 
 class UNet(Model):
     
     
-    def __init__(self, input_shape, foreground_weight, road_weight, num_classes = 2, **kwargs):
+    def __init__(self, input_shape, background_weight, road_weight, num_classes = 2, **kwargs):
     
         """Initialises the UNet model.
         """
@@ -28,26 +29,29 @@ class UNet(Model):
         # Instantiate basic parameters of the model
         self._input_shape = input_shape
         self.num_classes = num_classes
+        self.background_weight = background_weight
+        self.road_weight = road_weight
+
+        # Instantiate loss function
+        self.loss_fnc = Weighted_bce(self.background_weight, self.road_weight)
         
         # Instantiate custom layers
-        self.encoder_convblock_depth1 = Encoder_ConvBlock(64, 3, 1, True)
-        self.encoder_convblock_depth2 = Encoder_ConvBlock(128, 3, 1, True)
-        self.encoder_convblock_depth3 = Encoder_ConvBlock(256, 3, 1, True)
-        self.encoder_convblock_depth4 = Encoder_ConvBlock(512, 3, 1, True)
-        self.encoder_convblock_depth5 = Encoder_ConvBlock(1024, 3, 1, True)
+        self.encoder_convblock_depth1 = Encoder_ConvBlock(1, 64, 3, 1)
+        self.encoder_convblock_depth2 = Encoder_ConvBlock(2, 128, 3, 1)
+        self.encoder_convblock_depth3 = Encoder_ConvBlock(3, 256, 3, 1)
+        self.encoder_convblock_depth4 = Encoder_ConvBlock(4, 512, 3, 1)
+        self.encoder_convblock_depth5 = Encoder_ConvBlock(5, 1024, 3, 1)
         
         self.convtranspose_depth5 = Conv2DTranspose(filters = 512, kernel_size = 2, strides = 2, padding = 'same')
         self.convtranspose_depth4 = Conv2DTranspose(filters = 256, kernel_size = 2, strides = 2, padding = 'same')
         self.convtranspose_depth3 = Conv2DTranspose(filters = 128, kernel_size = 2, strides = 2, padding = 'same')
         self.convtranspose_depth2 = Conv2DTranspose(filters = 64, kernel_size = 2, strides = 2, padding = 'same')
         
-        self.decoder_convblock_depth4 = Decoder_ConvBlock(512, 3, 1, True)
-        self.decoder_convblock_depth3 = Decoder_ConvBlock(256, 3, 1, True)
-        self.decoder_convblock_depth2 = Decoder_ConvBlock(128, 3, 1, True)
+        self.decoder_convblock_depth4 = Decoder_ConvBlock(4, 512, 3, 1)
+        self.decoder_convblock_depth3 = Decoder_ConvBlock(3, 256, 3, 1)
+        self.decoder_convblock_depth2 = Decoder_ConvBlock(2, 128, 3, 1)
         
-        self.output_convblock = Output_ConvBlock(64, 3, 1, True)
-        self.foreground_weight = foreground_weight
-        self.road_weight = road_weight
+        self.output_convblock = Output_ConvBlock(64, 3, 1)
     
     # Override inherited summary() function
     def summary(self):
@@ -140,35 +144,23 @@ class UNet(Model):
       
         return x
     
+     
     def compute_loss(self, y_true, y_pred):
         
-        '''Implementation code to calculate IoU loss for the CBAM model. 
+        '''Implementation code to calculate binary cross entropy loss for the CBAM U-Net model. 
         
         Args:
-            y_true: tensor of shape (batch_size, 400, 400, 1), containing pixel values of groundtruth image
-            y_pred: tensor of shape (batch_size, 400, 400, 1), containing pixel values of prediction from model
+            output shape can be of shape (batch_size, 400, 400, 1) or (batch_size, 400, 400, 2) depending on the loss function used
+            y_true: tensors containing pixel values of groundtruth image
+            y_pred: tensor containing pixel values of predictions
 
         Returns:
             loss
         '''        
-        
-        class_weights = [self.foreground_weight, self.road_weight] 
-        num_samples = y_true.shape[0]
-        loss = 0.
-        
-        for i in range(num_samples):
-            # binary cross entropy loss
-            predictions = tf.reshape(y_pred[i], [-1])
-            targets = tf.reshape(y_true[i], [-1])
+            
+        return self.loss_fnc.compute_loss(y_true, y_pred)
 
-            # Apply binary cross entropy loss
-            bce = tf.keras.losses.BinaryCrossentropy()(targets, predictions)
-            weighted_bce = class_weights*bce
-            loss += tf.reduce_mean(weighted_bce)
-        
-        return loss/num_samples
-        
-    
+
     def compute_metrics(self, y_true, y_pred):
         
         '''Implementation code to calculate desired metrics of CBAM model. 
@@ -179,39 +171,16 @@ class UNet(Model):
         - Dice/F1 (In binary semantic segmentation, Dice == IoU)
         
         Args:
-            y_true: tensor of shape (batch_size, 400, 400, 1), containing pixel values of groundtruth image
-            y_pred: tensor of shape (batch_size, 400, 400, 1), containing pixel values of prediction from model
-
+            output shape can be of shape (batch_size, 400, 400, 1) or (batch_size, 400, 400, 2) depending on the loss function used
+            y_true: tensors containing pixel values of groundtruth image
+            y_pred: tensor containing pixel values of predictions
+        
         Returns:
             accuracy, iou, dice
         '''
         
-        ttal_acc, ttal_iou, ttal_dice = 0., 0., 0.
+        iou = self.loss_fnc.metrics.compute_iou(y_true, y_pred)
+        dice = self.loss_fnc.metrics.compute_dice(y_true, y_pred)
+        acc = self.loss_fnc.metrics.compute_acc(y_true, y_pred)
         
-        for i in range(y_true.shape[0]):
-            
-            # Flattten segmentation maps into 1D array
-            y_true_sample = tf.reshape(y_true[i], [-1])
-            y_pred_sample = tf.reshape(y_pred[i], [-1])
-
-            # Compute accuracy
-            # Calculate pixel-wise accuracy
-            y_true_sample_gt = tf.where(tf.greater(y_true_sample, 0.5), 1, 0)
-            y_pred_sample_gt = tf.where(tf.greater(y_pred_sample, 0.5), 1, 0)
-            correct_pixels = tf.reduce_sum(tf.cast(tf.equal(y_true_sample_gt, y_pred_sample_gt), tf.float32))            
-            height, width = y_true.shape[1], y_true.shape[2]
-            accuracy = correct_pixels/ (height*width)
-            ttal_acc += accuracy
-            
-            intersection = tf.reduce_sum(tf.cast(y_true_sample, tf.float32) * tf.cast(y_pred_sample, tf.float32))
- 
-            # Compute IoU
-            iou = (intersection + 1.) / (tf.reduce_sum(tf.cast(y_true_sample, tf.float32)) + 
-            tf.reduce_sum(tf.cast(y_pred_sample, tf.float32)) - intersection + 1.)
-            ttal_iou += iou
-            
-            # Compute dice
-            dice = (2*intersection)/ ((tf.reduce_sum(tf.cast(y_true_sample, tf.float32))) + (tf.reduce_sum(tf.cast(y_pred_sample, tf.float32))))
-            ttal_dice += dice
-        
-        return (ttal_acc/y_true.shape[0]), (ttal_iou/y_true.shape[0]), (ttal_dice/y_true.shape[0])
+        return acc, iou, dice

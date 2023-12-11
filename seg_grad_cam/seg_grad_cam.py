@@ -124,7 +124,7 @@ class SegGradCAM:
     or an individual pixel for semantic segmentation.
     """
 
-    def __init__(self, input_model, image, gt, cls=-1, prop_to_layer='activation_9', prop_from_layer='last',
+    def __init__(self, input_model, image, gt, clss=-1, prop_to_layer='activation_9', prop_from_layer='last',
                  roi=SuperRoI(),  # 1, #default: explain all the pixels that belong to cls
                  normalize=True, abs_w=False, posit_w=False):
 
@@ -134,7 +134,7 @@ class SegGradCAM:
         #if cls == None:
         # TODO: add option cls=-1 (predicted class) and cls=None (gt class)
         # TODO print model's confidence (probability) in prediction
-        self.cls = cls  # class
+        self.cls = clss  # class
         # prop_from_layer is the layer with logits prior to the last activation function
         if prop_from_layer == 'last':
             self.prop_from_layer = self.input_model.layers[-1].name
@@ -204,7 +204,7 @@ class SegGradCAM:
             #          ..., self.cls] * self.roi.roi  # Mask the region of interest
 
             # modified:
-            y_c = self.input_model(preprocessed_input)
+            y_c = self.input_model(preprocessed_input)[..., self.cls]
             
         grads = gtape.gradient(y_c, conv_layer.result)
             

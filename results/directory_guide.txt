@@ -1,0 +1,26 @@
+This text file provides a description to each of the folders in the 'results' folder.
+
+Terminologies:
+1. CBAM - Convolutional Block Attention Module
+2. BCE loss - Binary Cross Entropy loss
+3. IOU loss - Intersection over Union loss
+
+1. trial_1: 
+ - Model: Vanilia U-Net
+ - Loss: Weighted BCE loss 
+ - Dataset: Original dataset
+ 
+2. trial_2:
+ - Model: CBAM U-Net
+ - Loss: Weighted BCE loss
+ - Dataset: Original dataset
+ 
+ 3. trial_3:
+ - Model: CBAM U-Net
+ - Loss: Weighted BCE loss
+ - Dataset: Augmented dataset
+ 
+ 4. trial_4:
+ - Model: CBAM U-Net
+ - Loss: Weighted IOU loss
+ - Dataset: Augmented dataset
