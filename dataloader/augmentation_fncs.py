@@ -109,7 +109,7 @@ def salt_and_pepper_noise(img, gt):
 def black_patch_noise(img, gt):
     
     # Specify patch parameters
-    patch_size = [150, 150]  # height and width of the patch
+    patch_size = [64, 64]  # height and width of the patch
     img_height, img_width = img.shape[0], img.shape[1]
     
     max_height_start = img_height - 1 - patch_size[0] # -1 since 0-indexed
