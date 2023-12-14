@@ -184,3 +184,20 @@ class UNet(Model):
         acc = self.loss_fnc.metrics.compute_acc(y_true, y_pred)
         
         return acc, iou, dice
+    
+    
+    def get_binary_mask(self, y_pred):
+        
+        '''Converts the output to a binary semantic mask.
+        
+        Args:
+            y_pred: tensor containing predictions, of shape (num_samples, 400, 400, 1)
+            
+        Returns:
+            y_pred_binary: tensors containing 0 or 1, representing class 0 or 1, of shape (num_samples, 400, 400, 1)
+        '''
+        
+        # TODO: Update documentations to (batch_size, height, width, channel) when describing shape to generalise for input shape
+        y_pred_binary = tf.where(y_pred > 0.5, 1.0, 0.0)
+            
+        return y_pred_binary
