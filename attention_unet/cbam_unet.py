@@ -261,7 +261,6 @@ class CBAM_UNet(Model):
         
         return acc, iou, dice
     
-    
     def get_binary_mask(self, y_pred):
         
         '''Converts the output to a binary semantic mask.
