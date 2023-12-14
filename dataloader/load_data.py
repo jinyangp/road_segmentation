@@ -4,6 +4,7 @@
 import os 
 import tensorflow as tf
 import numpy as np
+from patchify import patchify
 
 from augmentation_fncs import *
 
@@ -124,7 +125,165 @@ def create_dataset(imgs_dir, gts_dir, one_hot = False):
     dataset = dataset.map(lambda img, gt: (load_image(img), load_gt(gt, one_hot)))
     dataset = dataset.map(lambda img, gt: set_shapes(img, gt, one_hot))
     return dataset
-                          
+
+
+def generate_patches(ds, patch_size, overlap, one_hot = False, padding = False):
+
+    '''Implementation code to generate image patches from a loaded tf.Dataset. To be used when training.
+        
+    Args:
+        ds: tf.data.Dataset, containing images and groundtruths
+        patch_size: shape of patches of (patch_height, patch_width, patch_channels)
+        overlap: int, number of overlapping pixels per patch
+        one_hot: boolean, whether groundtruth images are one hot encoded
+        padding: boolean, whether the images are padded
+        
+    Returns:
+       patched_imgs_ds: tf.data.Dataset, containing patched images and groundtruths
+    '''  
+    
+    img_patches_arr = []
+    gt_patches_arr = []
+    
+    height, width = patch_size[0], patch_size[1]
+    img_patch_size = (height, width, 3)
+    
+    # Iterate through images in the dataset
+    for img, gt in ds:
+        
+        img = img.numpy()
+        gt = gt.numpy()
+
+        # Add padding to image to ensure all pixels covered
+        if padding:
+            pad_height = patch_size[0] - (img.shape[0] % (patch_size[0] - overlap))
+            pad_width = patch_size[1] - (img.shape[1] % (patch_size[1] - overlap))
+            img = np.pad(img, ((0, pad_height), (0, pad_width), (0, 0)), mode='constant')
+            gt = np.pad(gt,((0, pad_height), (0, pad_width), (0, 0)), mode='constant')
+        
+        if one_hot:
+            gt_patch_size = (height, width, 2)
+        else:
+            gt_patch_size = (height, width, 1)
+  
+        # Visualise the patches as a grid, at row i and column j
+        img_patches = patchify(img, img_patch_size, step = img_patch_size[0] - overlap)
+        gt_patches = patchify(gt, gt_patch_size, step = gt_patch_size[0] - overlap)
+    
+        num_rows = img_patches.shape[0]
+        num_cols = img_patches.shape[1]
+        
+        for i in range(num_rows):
+            for j in range(num_cols):
+                
+                cur_img_patch = img_patches[i,j, 0]
+                img_patches_arr.append(cur_img_patch)
+                cur_gt_patch = gt_patches[i,j, 0]
+                gt_patches_arr.append(cur_gt_patch)
+    
+    patched_imgs_ds = tf.data.Dataset.from_tensor_slices((np.array(img_patches_arr), np.array(gt_patches_arr)))
+    return patched_imgs_ds
+ 
+def generate_patches_imgs(ds, patch_size, overlap, padding = False):
+
+    '''Implementation code to generate image patches from a loaded tf.Dataset. This function is similar to generate_patches but the dataset received in this function only contains images. To be used when generating submissions.
+        
+    Args:
+        ds: tf.data.Dataset, containing images and groundtruths
+        patch_size: shape of patches of (patch_height, patch_width, patch_channels)
+        overlap: int, number of overlapping pixels per patch
+        padding: boolean, whether the images are padded
+        
+    Returns:
+       patched_imgs_ds: tf.data.Dataset, containing patched images
+    '''  
+    
+    img_patches_arr = []
+    
+    height, width = patch_size[0], patch_size[1]
+    img_patch_size = (height, width, 3)
+    
+    # Iterate through images in the dataset
+    for img in ds:
+        
+        img = img.numpy()
+    
+        # Add padding to image to ensure all pixels covered
+        if padding:
+            pad_height = patch_size[0] - (img.shape[0] % (patch_size[0] - overlap))
+            pad_width = patch_size[1] - (img.shape[1] % (patch_size[1] - overlap))
+            img = np.pad(img, ((0, pad_height), (0, pad_width), (0, 0)), mode='constant')
+              
+        # Visualise the patches as a grid, at row i and column j
+        img_patches = patchify(img, img_patch_size, step = img_patch_size[0] - overlap)
+        
+        num_rows = img_patches.shape[0]
+        num_cols = img_patches.shape[1]
+        
+        for i in range(num_rows):
+            for j in range(num_cols):
+                
+                cur_img_patch = img_patches[i,j, 0]
+                img_patches_arr.append(cur_img_patch)
+    
+    patched_imgs_ds = tf.data.Dataset.from_tensor_slices(np.array(img_patches_arr))
+    return patched_imgs_ds
+    
+def reconstruct_image(patches, patch_size, original_size, overlap, padding = False):
+    
+    '''Reconstruct images from generated patches
+    
+    Args:
+        patches: nd.array, of shape (num_patches, patch_height, patch_width, patch_channel)
+        patch_size: nd.array, shape of each patch
+        original_size: nd.array, shape of original image
+        overlap: int, number of overlapping pixels per patch
+        padding: boolean, if the image is padded
+        
+    Returns:
+        combined_patches_arr: nd.array, of shape same as original size if padding was applied else shape of patches combined containing reconstructed image's pixel values
+    
+    '''
+    original_height, original_width, original_channels = original_size[0], original_size[1], original_size[2]
+    patch_height, patch_width, patch_channels  = patch_size[0], patch_size[1], patch_size[2]
+    
+    # Get array to store reconstructed image
+    reconstructed_arr = np.zeros(shape = original_size, dtype = np.float32)
+    
+    num_rows = original_height // patch_height
+    num_cols = original_width // patch_width
+    
+    if padding:
+        num_rows += 1
+        num_cols += 1
+        
+    # Array to store combined patches
+    combined_patches_height = patch_height * num_rows
+    combined_patches_width = patch_width * num_cols
+    combined_patches_arr = np.zeros(shape = (combined_patches_height, combined_patches_width, original_channels), dtype = np.float32)
+    
+    # Combine the patches
+    for i in range(num_rows):
+        
+        # if no padding, reconstructed image will be smaller than original
+        # if have padding, reconstructed image will be larger than original
+        row_start = i*patch_height
+        row_end = (i+1)*patch_height
+
+        for j in range(num_cols):
+            
+            col_start = j*patch_width
+            col_end = (j+1)*patch_width
+            
+            cur_patch_idx = (i*num_rows)+j
+            
+            combined_patches_arr[row_start:row_end, col_start:col_end,:] = patches[cur_patch_idx]
+    
+    if padding:
+        return combined_patches_arr[:original_height, :original_width,:]
+    
+    return combined_patches_arr
+
 
 # Function to generate the augmented dataset given the original dataset
 def create_augmented_dataset(dataset, num_images):

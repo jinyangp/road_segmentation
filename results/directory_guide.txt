@@ -24,3 +24,8 @@ Terminologies:
  - Model: CBAM U-Net
  - Loss: Weighted IOU loss
  - Dataset: Augmented dataset
+ 
+  5. trial_5:
+ - Model: CBAM U-Net
+ - Loss: Weighted IOU loss
+ - Dataset: Augmented, Patched dataset

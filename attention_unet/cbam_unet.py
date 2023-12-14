@@ -236,7 +236,7 @@ class CBAM_UNet(Model):
             
         return self.loss_fnc.compute_loss(y_true, y_pred)
 
-    
+
     def compute_metrics(self, y_true, y_pred):
         
         '''Implementation code to calculate desired metrics of CBAM model. 
