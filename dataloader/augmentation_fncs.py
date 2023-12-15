@@ -66,7 +66,7 @@ def transpose_img(img, gt):
     return img, gt
 
 
-'''Augmentation related to adding noise to image (Gaussian, Salt and Pepper, Cropped out black patches'''
+'''Augmentation related to adding noise to image (Gaussian, Salt and Pepper, Cropped out black patches and Snow noise)'''
 def add_gaussian_noise(img, gt):
     
     # Generate gaussian distribution

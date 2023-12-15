@@ -1,6 +1,7 @@
+'''This file contains the implementation code for helper functions used to generate predicted groundtruth semantic maps from the submission.csv file.'''
 #!/usr/bin/python
 import os
-import sys
+import sys from 
 import Image
 import math
 import matplotlib.image as mpimg

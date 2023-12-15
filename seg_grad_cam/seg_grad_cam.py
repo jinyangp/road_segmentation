@@ -1,4 +1,7 @@
-"This code was referenced from: https://github.com/kiraving/SegGradCAM/tree/master"
+'''This file contains the code required to generate the gradient activation map.
+
+This code was referenced from: https://github.com/kiraving/SegGradCAM/tree/master
+'''
 
 import numpy as np
 import cv2
@@ -10,6 +13,7 @@ import tensorflow as tf
 
 
 class SuperRoI:  # or rename it to ClassRoI
+    '''This class is the superclass for classes that are used to define a region of interest in the image that the gradient activation map should be made for.'''
     def __init__(self, image =None):
         self.image = image
         self.roi = 1

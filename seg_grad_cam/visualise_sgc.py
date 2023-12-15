@@ -1,4 +1,7 @@
-"This code was referenced from: https://github.com/kiraving/SegGradCAM/tree/master"
+'''This file contains the code required to visualise the generated gradient activation map.
+
+This code was referenced from: https://github.com/kiraving/SegGradCAM/tree/master
+'''
 
 """ 1) orig, gt, predicted, sgc for:
 1.1) 1 px

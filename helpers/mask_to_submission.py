@@ -1,3 +1,4 @@
+'''This file contains the implementation code for helper functions used to generate the submission.csv file from predicted groundtruth semantic maps.'''
 #!/usr/bin/env python3
 
 import os

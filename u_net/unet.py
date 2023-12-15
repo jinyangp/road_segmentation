@@ -1,10 +1,9 @@
 '''This file contains the implementation code for the UNet model.
 
 This model references the following papers:
-1. U-Net Architecture: https://arxiv.org/pdf/1505.04597.pdf
+1. U-Net: Convolutional Networks for Biomedical Image Segmentation, https://arxiv.org/pdf/1505.04597.pdf
 
-Side note: (Additional papers to be implemented in the future)
-1. UNet++ Architecture: https://ieeexplore.ieee.org/document/9622008
+This model serves as a baseline to the CBAM-UNet model implemented.
 '''
 
 import numpy as np

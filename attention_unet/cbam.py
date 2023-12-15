@@ -1,8 +1,8 @@
 '''This file contains the implementation code for the Convolutional Block Attention Module (CBAM).
 
 
-The code references the following papers:
-1. CBAM: https://arxiv.org/pdf/1807.06521.pdf
+This code references the following papers:
+1. CBAM: Convolutional Block Attention Module, https://arxiv.org/pdf/1807.06521.pdf
 '''
 
 import tensorflow as tf
@@ -38,7 +38,7 @@ class CBAM_Module(Layer):
 
         Args:
             x: Input features F of shape (height, width,channel)
-            reduction_ratio: Ratio to reduce no. of parameters in shaped MLP. A hyperparameter to be tuned later
+            reduction_ratio: Ratio to reduce no. of parameters in shared MLP.
 
         Returns:
             channel_att_map: Channel attention map of shape (channel, 1, 1)

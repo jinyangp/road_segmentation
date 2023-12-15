@@ -1,4 +1,4 @@
-'''This file contains the implementation code for loading in the original and augmented dataset from the images directory.
+'''This file contains the implementation code for all functions pertaining to the creation and loading in of dataset used to train or evaluate the model.
 '''
 
 import os 
@@ -11,14 +11,14 @@ from augmentation_fncs import *
 # Function to determine class weights
 def get_class_weights(imgs_dir, gts_dir):
     
-    '''Implementation code to determine class weights for road and background.
+    '''Implementation code to determine the proportion of pixels labelled as road or background. This is achieved by calculating the proportion of pixels labelled as road and background in the provided groundtruth images. Then, the proportions are swapped and the inverse is taken as the weight to give greater importance to the 'road' class. This is due to the dataset being imbalanced with the majority of pixels being classified as the 'background' class.
         
     Args:
         imgs_dir: directory name where images are stored
         gts_dir: directory name where groundtruths are stored
         
     Returns:
-        background_weight, road_weight: float, determined weights of each class
+        road_proportion, background_proportion: float, determined proportions of each class
     '''
     
     dataset = create_dataset(imgs_dir, gts_dir, True)
@@ -49,7 +49,7 @@ def get_class_weights(imgs_dir, gts_dir):
 # Load images from filepath
 def load_image(file_name):
     
-    '''Implementation code to preprocess images. 
+    '''Implementation code to read in and preprocess an image from the directory. 
         
     Args:
         file_name: file name of image to be preprocessed
@@ -68,10 +68,11 @@ def load_image(file_name):
 
 def load_gt(file_name, one_hot = False):
     
-    '''Implementation code to preprocess groundtruth images. 
+    '''Implementation code to read in and preprocess groundtruth image from the directory. 
         
     Args:
         file_name: file name of groundtruth to be preprocessed
+        one_hot: boolean, boolean flag to determine if groundtruths should be one hot encoded. The groundtruths only need to be one hot encoded if weighted IOU loss is used.
         
     Returns:
         tensor: tensor containing pixel values of processed groundtruth
@@ -129,7 +130,7 @@ def create_dataset(imgs_dir, gts_dir, one_hot = False):
 
 def generate_patches(ds, patch_size, overlap, one_hot = False, padding = False):
 
-    '''Implementation code to generate image patches from a loaded tf.Dataset. To be used when training.
+    '''Implementation code to generate image patches for both images and groundtruths from a loaded tf.Dataset. To be used when training.
         
     Args:
         ds: tf.data.Dataset, containing images and groundtruths
@@ -292,7 +293,7 @@ def create_augmented_dataset(dataset, num_images):
         
     Args:
         dataset: original dataset to be augmented
-        num_images: List[int] of (num_brightness, num_rotation, num_noise)
+        num_images: List[int] of (num_brightness, num_rotation, num_noise). This indicates number of samples augmented by using augmentation techniques related to brightness, rotation and adding noise.
         
     Returns:
         augmented_dataset: tf.data.Dataset instance, an instance of the augmented dataset
@@ -307,7 +308,7 @@ def create_augmented_dataset(dataset, num_images):
     # Get number of augmented samples for each augmentation categories
     num_brightness, num_rotation, num_noise = num_images[0], num_images[1], num_images[2]
     
-    # Brightness, contrast and saturation (2 different brightness, 2 different contrast, 2 different saturations)
+    # Brightness, contrast and saturation
     for i in range(num_brightness):
 
         brightness_augmented_ds = dataset.map(adjust_brightness)
@@ -320,7 +321,7 @@ def create_augmented_dataset(dataset, num_images):
         augmented_dataset = augmented_dataset.concatenate(saturation_augmented_ds)
     
 
-    # Apply rotation to images (1 flip_left_right, 1 flip_up_down, 1 flip 90 degree, 1 flip 270 degree, 1 transpose)
+    # Apply rotation to images
     for i in range(num_rotation):
 
         flip_lr_ds = dataset.map(flip_left_right)
@@ -339,7 +340,7 @@ def create_augmented_dataset(dataset, num_images):
         augmented_dataset = augmented_dataset.concatenate(transposed_ds)
     
 
-    # Add noise to image (3 Gaussian noise, 3 cloud noise, 3 random black patches)
+    # Add noise to images
     for i in range(num_noise):
 
         gaussian_augmented_ds = dataset.map(add_gaussian_noise)

@@ -24,6 +24,7 @@ class Encoder_ConvBlock(Layer):
         
         self.conv_layer2 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
     
+    
     def call(self, x):
             
         x = self.conv_layer1(x)
@@ -33,7 +34,7 @@ class Encoder_ConvBlock(Layer):
     
 class Decoder_ConvBlock(Layer):
     
-    '''Convolutional block for the encoder (downsampling portion) of the model.
+    '''Convolutional block for the decoder (upsampling portion) of the model.
     '''
     
     def __init__(self, depth_no, num_filters, kernel_size, strides, **kwargs):
@@ -48,7 +49,6 @@ class Decoder_ConvBlock(Layer):
         self.conv_layer1 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
         
         self.conv_layer2 = Conv2D(filters = num_filters, kernel_size = kernel_size, strides = strides, padding = 'same', activation = 'relu', kernel_initializer = 'he_normal')
-        self.conv_layer2._name = 'conv_layer2'
       
         
     def call(self, x):

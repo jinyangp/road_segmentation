@@ -1,5 +1,6 @@
 '''This file contains the implementation code for helper functions used to visualise the output of the model. These helper functions include making a prediction overlay with the image and many more.
 '''
+
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -24,11 +25,11 @@ def concatenate_seg_maps(gt_seg_map, pred_seg_map):
 
 def concatenate_img_and_segmaps(img, seg_map):
     
-    """Visualise the actual segmentation map and the predicted segmentation map side by side 
+    """Visualise the actual image and the predicted segmentation map side by side 
     
     Args:
-        img: numpy array, image
-        pred_seg_map: numpy array, predicted segmentation map
+        img: numpy array, image pixel values
+        pred_seg_map: numpy array, predicted segmentation map pixel values
     
     Returns:
         None

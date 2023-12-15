@@ -24,7 +24,7 @@ class Weighted_iou(Loss):
         '''Implementation code to calculate weighted iou loss. 
         
         Args:
-            y_true: tensor of shape (batch_size, 400, 400, 1), containing pixel values of groundtruth image
+            y_true: tensor of shape (batch_size, 400, 400, 2), containing pixel values of groundtruth image. Each channel corresponds to one segmented class.
             y_pred: tensor of shape (batch_size, 400, 400, 2), containing pixel values of prediction from model. Each channel corresponds to one segmented class.
 
         Returns:

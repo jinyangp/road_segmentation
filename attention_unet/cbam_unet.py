@@ -1,13 +1,10 @@
 '''This file contains the implementation code for the CBAM-UNet model.
 
 This model references the following papers:
-1. CBAM: https://arxiv.org/pdf/1807.06521.pdf
-2. U-Net Architecture: https://arxiv.org/pdf/1505.04597.pdf
+1. CBAM: Convolutional Block Attention Module, https://arxiv.org/pdf/1807.06521.pdf
+2. U-Net: Convolutional Networks for Biomedical Image Segmentation, https://arxiv.org/pdf/1505.04597.pdf
 
-This model uses the U-Net Architecture as the backbone and incorporates Attention mechanism and skip connections to allow for better performance.
-
-Side note: (Additional papers to be implemented in the future)
-1. CBAM-UNet++ Architecture: https://ieeexplore.ieee.org/document/9622008
+This model is a U-Net that incorporates Attention mechanism and skip connections to allow for better performance.
 '''
 
 import numpy as np
@@ -131,20 +128,17 @@ class CBAM_UNet(Model):
     
     def call(self, inputs, num_classes=2):
 
-        '''Implementation code for CBAM UNet model.
-
-        In each convolutional block, 2 2D Convolutional layers with a kernel size of 3x3 and the number of filters per layer
-        given as an argument to the function.
+        '''Implementation code to perform a forward feed through the CBAM U-Net model.
 
         Args:
-            x: Input features of shape (height, width, channel)
+            inputs: Inputs of shape (batch_size, height, width, channel)
             num_filters: int, number of filters used in convolutional layer
 
         Returns:
             output of the convolutional block
         '''
 
-        # Initial shape: (400, 400, 3)
+        # Initial shape: (height, width, 3)
 
         # -----------------------------------
         # Downsampling part - Encoder portion
@@ -155,31 +149,31 @@ class CBAM_UNet(Model):
         
         x = self.encoder_convblock_depth1(x)
         x_1 = x
-        # shape: (None, 400, 400, 64)
+        # shape: (None, height, width, 64)
         
         x = MaxPooling2D(pool_size = 2, strides = 2, padding = 'same')(x)
-        # shape: (None, 200, 200, 64)
+        # shape: (None, height/2, width/2, 64)
         
         x = self.encoder_convblock_depth2(x)
         x_2 = x
-        # shape: (None, 200, 200, 128)
+        # shape: (None, height/2, width/2, 128)
         x = MaxPooling2D(pool_size = 2, strides = 2, padding = 'same')(x)
-        # shape: (None, 100, 100, 128)
+        # shape: (None, height/4, width/4, 128)
         
         x = self.encoder_convblock_depth3(x)
         x_3 = x
-        # shape: (None, 100, 100, 256)
+        # shape: (None, height/4, width/4, 256)
         x = MaxPooling2D(pool_size = 2, strides = 2, padding = 'same')(x)
-        # shape: (None, 50, 50, 256)
+        # shape: (None, height/8, width/8, 256)
 
         x = self.encoder_convblock_depth4(x)
         x_4 = x
-        # shape: (None, 50, 50, 512)
+        # shape: (None, height/8, width/8, 512)
         x = MaxPooling2D(pool_size = 2, strides = 2, padding = 'same')(x)
-        # shape: (None, 25, 25, 1024)
+        # shape: (None, height/16, width/16, 1024)
 
         x = self.encoder_convblock_depth5(x)
-        # shape: (None, 25, 25, 1024)
+        # shape: (None, height/16, width/16, 1024)
 
         # -----------------------------------
         # Upsampling part - Decoder portion
@@ -194,41 +188,41 @@ class CBAM_UNet(Model):
         attention_x_4 = self.apply_att_and_crop(x_4, 4, tf.shape(x_4))       
         x = Concatenate(axis=-1)([attention_x_4, x])        
         x = self.decoder_convblock_depth4(x)
-        # shape: (None, 50, 50, 512)
+        # shape: (None, height/8, width/8, 512)
         
         x = self.convtranspose_depth4(x)
         attention_x_3 = self.apply_att_and_crop(x_3, 3, tf.shape(x))
         x = Concatenate(axis=-1)([attention_x_3, x])
         x = self.decoder_convblock_depth3(x)
-        # shape: (None, 100, 100, 256)
+        # shape: (None, height/4, width/4, 256)
         
         x = self.convtranspose_depth3(x)
         attention_x_2 = self.apply_att_and_crop(x_2, 2, tf.shape(x))
         x = Concatenate(axis=-1)([attention_x_2, x])
         x = self.decoder_convblock_depth2(x)
-        # shape: (None, 200, 200, 128)
+        # shape: (None, height/2, width/2, 128)
         
         x = self.convtranspose_depth2(x)
         attention_x_1 = self.apply_att_and_crop(x_1, 1, tf.shape(x))
         x = Concatenate(axis=-1)([attention_x_1, x])
-        # shape: (None, 400, 400, 128)
+        # shape: (None, height, width, 128)
         
         # -----------------------------------
         # Final portion: Further convolve and finally a 1x1 convolution to get segmentation map        
         x = self.output_convblock(x)
-        # shape: (None, 400, 400, 2)
+        # shape: (None, height, width, 1) or (None, height, width, 2) depending on loss function used
       
         return x
         
         
     def compute_loss(self, y_true, y_pred):
         
-        '''Implementation code to calculate binary cross entropy loss for the CBAM U-Net model. 
+        '''Implementation code to calculate loss for the CBAM U-Net model. 
         
         Args:
             output shape can be of shape (batch_size, 400, 400, 1) or (batch_size, 400, 400, 2) depending on the loss function used
             y_true: tensors containing pixel values of groundtruth image
-            y_pred: tensor containing pixel values of predictions
+            y_pred: tensors containing pixel values of predictions
 
         Returns:
             loss
@@ -239,12 +233,12 @@ class CBAM_UNet(Model):
 
     def compute_metrics(self, y_true, y_pred):
         
-        '''Implementation code to calculate desired metrics of CBAM model. 
+        '''Implementation code to calculate desired metrics of CBAM U-Net model. 
         
-        The following losses are considered:
+        The following metrics are considered:
         - Accuracy
         - IoU
-        - Dice/F1 (In binary semantic segmentation, Dice == IoU)
+        - Dice/F1 (In binary semantic segmentation, Dice == F1)
         
         Args:
             output shape can be of shape (batch_size, 400, 400, 1) or (batch_size, 400, 400, 2) depending on the loss function used
@@ -263,7 +257,7 @@ class CBAM_UNet(Model):
     
     def get_binary_mask(self, y_pred):
         
-        '''Converts the output to a binary semantic mask.
+        '''Converts the output to a binary semantic mask. (Each value in the mask is either 0 or 1 representing the predicted class for that pixel.)
         
         Args:
             y_pred: tensor containing predictions, of shape (num_samples, 400, 400, 1) for weighted BCE loss and (num_samples, 400, 400, 2) for weighted IOU loss

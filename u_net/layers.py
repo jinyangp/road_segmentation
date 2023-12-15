@@ -1,4 +1,4 @@
-'''This file contains the implementation code for custom layers for the CBAM-UNet model.
+'''This file contains the implementation code for custom layers for the UNet model.
 '''
 
 import tensorflow as tf
