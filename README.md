@@ -58,7 +58,20 @@ Due to the lack of local computational resources, notebooks that required the us
 
 ### Results
 
-<!-- to be updated -->
+Five models, each labelled as Trial 1-5, were developed iteratively. The table below details the changes made in and the results of each trial.
+
+| Model/Trial no. | Model | Loss Function | Augmented | Patched | Pixel Accuracy | IoU | Dice (F1) |
+| ----------- | ----------- | ----------- | ----------- | ----------- | ----------- | ----------- | ----------- | 
+| 1 | U-Net | Weighted BCE | No | No | 0.925 ± 0.086 | 0.586 ± 0.457 | 0.707 ± 0.227 | 
+| 2 | CBAM U-Net | Weighted BCE | No | No | 0.918 ± 0.098 | 0.588 ± 0.511 | 0.699 ± 0.530 |
+| 3 | CBAM U-Net | Weighted BCE | Yes | No | 0.921 ± 0.101 | 0.547 ± 0.509 | 0.665 ± 0.522 |
+| 4 | CBAM U-Net | Weighted IoU | Yes | No | 0.928 ± 0.092 | 0.762 ± 0.277 | 0.835 ± 0.271 |
+| 5 | CBAM U-Net | Weighted IoU | Yes | Yes | 0.863 ± 0.126 | 0.908 ± 0.147 | 0.946 ± 0.110 |
+
+*Note: Metrics (e.g., pixel accuracy) were obtained on a similar validation data set for all trials.* <br>
+*BCE - Binary Cross Entropy, IoU - Intersection over Union*
+
+In the end, Model 5 was chosen as the best performing model, trained with ```Adam``` optimiser, learning rate of ```0.00001``` and ```100``` epochs.
 
 ### Built With
 
@@ -72,8 +85,55 @@ The deep learning models in this project were created using Tensorflow and Keras
 ## Getting Started
 
 You need to clone this repository.
+```sh
+git clone https://github.com/jinyangp/dso_localisation.git
+```
 
-<!-- to be updated -->
+Due to the lack of computational resources locally, computationally intensive notebooks were ran on Kaggle while the rest were ran locally. 
+
+### Generation of results
+To generate the results used in the submission on AICrowd, click on the link made available in ```generate_submissions.ipynb``` and run the notebook. The submission.csv can be found in the Outputs. 
+
+### Notebooks ran on Kaggle
+Notebooks ran on Kaggle have been labelled at the top of the notebook. To run Kaggle notebooks, simply click on the link made available at the top of the notebook.
+
+### Notebooks ran locally
+
+First, create a folder ```datasets``` in the base directory with the following structure:
+
+```plaintext
+project-root/
+│
+├── datasets/
+│ ├── train/
+│ │ ├── groundtruth/
+│ │ └── image/
+│ ├── test/
+│ │ └── image/
+```
+
+Each image is labelled as follows 'satImage_xxx.png'.
+
+1. Install virtualenv package
+```sh
+pip install virtualenv
+```
+
+2. Create a virtual environment in desired directory
+```sh
+cd [project path]
+virtualenv venv
+```
+
+3. Activate the environment
+```sh
+source ./venv/bin/activate
+```
+
+4. Install Tensorflow
+```sh
+pip install tensorflow patchify
+```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
