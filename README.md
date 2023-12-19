@@ -71,7 +71,7 @@ Five models, each labelled as Trial 1-5, were developed iteratively. The table b
 *Note: Metrics (e.g., pixel accuracy) were obtained on a similar validation data set for all trials.* <br>
 *BCE - Binary Cross Entropy, IoU - Intersection over Union*
 
-In the end, Model 5 was chosen as the best performing model, trained with ```Adam``` optimiser, learning rate of ```0.00001``` and ```100``` epochs.
+In the end, Model 5 was chosen as the best performing model, with hyperparameters of ```Adam``` optimiser, learning rate of ```0.00001``` and ```100``` epochs.
 
 ### Built With
 
