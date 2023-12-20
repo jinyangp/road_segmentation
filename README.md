@@ -130,9 +130,9 @@ virtualenv venv
 source ./venv/bin/activate
 ```
 
-4. Install Tensorflow
+4. Install requirements packages
 ```sh
-pip install tensorflow patchify
+pip install -r [requirements file]
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
