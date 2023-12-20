@@ -50,7 +50,7 @@ Due to the lack of local computational resources, notebooks that required the us
 | attention_unet | Contains the implementation code for implementing the CBAM-UNet model |
 | dataloader | Contains the implementation code to generate datasets and loading them in to be used to train/evaluate the models |
 | helpers | Contains the implementation code for helper functions used to generate submissions and visualisations |
-| results | Contains the notebooks used for model training, the relevant results and gradient activations |
+| results | Contains the notebooks used for model training, the results (metrics obtained for train and validation data set during training) and gradient activations (with trained model weights) |
 | u_net | Contains the implementation code for implementing the UNet model |
 | generate_submissions.ipynb | Contains the notebook used to generate the submission |
 
